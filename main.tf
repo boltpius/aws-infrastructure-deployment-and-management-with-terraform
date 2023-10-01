@@ -175,5 +175,40 @@ resource "aws_autoscaling_group" "piusautoscaling" {
   }
 }
 
+# ACM CERTIFICATE AND VALIDATION WITH ROUTE53 
 
+resource "aws_acm_certificate" "piuscert" {
+  domain_name       = "*.piustech.io"
+  validation_method = "DNS"
 
+  tags = {
+    Environment = "piusacmcert"
+  }
+}
+
+data "aws_route53_zone" "piustech" { # This sends aws route53 to retrieve information about the dns zoned named piustech.io 
+  name         = "piustech.io" # to match the domain used in the ACM CERTIFICATE
+  private_zone = false # it is set to false because my dns zone is public 
+ }
+
+resource "aws_route53_record" "piusrecord" { # this creates a record for the purpose of acm certificate validation 
+  for_each = {
+    for dvo in aws_acm_certificate.piuscert.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60 # ttl (time to live)
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.piustech.zone_id
+}
+
+resource "aws_acm_certificate_validation" "piusvalidation" {  # this block uses the amazon resource block to specify which certificate to validate.
+  certificate_arn         = aws_acm_certificate.piuscert.arn
+  validation_record_fqdns = [for record in aws_route53_record.piusrecord : record.fqdn]
+}
