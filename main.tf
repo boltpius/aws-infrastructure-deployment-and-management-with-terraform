@@ -178,7 +178,7 @@ resource "aws_autoscaling_group" "piusautoscaling" {
 # ACM CERTIFICATE AND VALIDATION WITH ROUTE53 
 
 resource "aws_acm_certificate" "piuscert" {
-  domain_name       = "*.piustech.io"
+  domain_name       = "satar.piustech.io"
   validation_method = "DNS"
 
   tags = {
@@ -211,4 +211,79 @@ resource "aws_route53_record" "piusrecord" { # this creates a record for the pur
 resource "aws_acm_certificate_validation" "piusvalidation" {  # this block uses the amazon resource block to specify which certificate to validate.
   certificate_arn         = aws_acm_certificate.piuscert.arn
   validation_record_fqdns = [for record in aws_route53_record.piusrecord : record.fqdn]
+}
+
+
+# APPLICATION LOADBALANCER (ALB), TAGRET GROUP AND LISTENER 
+resource "aws_lb" "piusalb" {
+  name               = "piusloadbalancer"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.pius_secuirty.id]
+  subnets            = [aws_subnet.pub1.id, aws_subnet.pub2.id]
+  # this was the previous one subnets            = [for subnet in aws_subnet.public : subnet.id]
+
+  enable_deletion_protection = true
+
+  tags = {
+    Environment = "production"
+  }
+}
+
+resource "aws_lb_target_group" "piustargetgroup" {
+  name     = "pius-lb-targetgroup"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.piusVPC.id
+}
+
+resource "aws_lb_listener" "piuslistener" {
+  load_balancer_arn = aws_lb.piusalb.arn
+  port              = "443"
+  protocol          = "HTTPS" 
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.piuscert.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.piustargetgroup.arn
+  }
+}
+
+# REDIRECT HTTP TRAFFIC TO HTTPS AND THEN FORWARD THE TRAFFIC TO LB TARGET GROUP
+resource "aws_lb_listener" "piusredirect" {
+  load_balancer_arn = aws_lb.piusalb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+} 
+
+# CREATING A ROUTE 53 RECORD FOR THE DNS AND ALIASING IT WITH THE LOADBALANCER
+
+resource "aws_route53_record" "satar_piustech" {
+  # zone_id = aws_route53_zone.piustech.zone_id
+  zone_id = data.aws_route53_zone.piustech.zone_id
+  name    = "satar.piustech.io"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.piusalb.dns_name
+    zone_id                = aws_lb.piusalb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# ALB TARGET GROUP ATTACHMENT 
+resource "aws_autoscaling_attachment" "piusattachment_ASG" {
+  autoscaling_group_name = aws_autoscaling_group.piusautoscaling.id
+  lb_target_group_arn    = aws_lb_target_group.piustargetgroup.arn
 }
