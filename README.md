@@ -2,7 +2,10 @@
 
 # Project Summary
 
-This project details the creation of an end-to-end infrastructure on Amazon Web Services (AWS) using Terraform for Infrastructure as Code (IaC). The objective was to establish a scalable, secure, and automated architecture for the PIUS system.
+This project details the creation of an end-to-end infrastructure on Amazon Web Services (AWS) using Terraform for Infrastructure as Code (IaC). The objective was to establish a scalable, secure, and automated architecture for my infrastructure "PIUS".
+## Summary of Achievements:
+
+I designed and implemented a comprehensive, end-to-end infrastructure solution on AWS using Terraform. This included seamlessly integrating various components such as VPC, subnets, security groups, load balancers, autoscaling groups, and DNS setup. By streamlining these components, the infrastructure operates cohesively as a unified system, ensuring efficient performance and scalability. Through Terraform’s automation, I orchestrated this complex infrastructure deployment, enabling rapid and consistent provisioning while adhering to best practices and minimizing manual intervention.
 
 ## Steps and Explanations:
 
