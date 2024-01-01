@@ -37,7 +37,7 @@ I designed and implemented a comprehensive, end-to-end infrastructure solution o
 - **Process:** 
   - Defined comprehensive security rules using `aws_security_group` for HTTP, HTTPS, and SSH traffic.
 - **Details:** 
-  - Allowed specific inbound and outbound traffic based on defined protocols and ports.
+  - Allowed specific inbound and outbound traffic based on defined protocols and ports
 
 ### 6. Launch Template:
 - **Process:** 
